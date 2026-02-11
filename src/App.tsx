@@ -281,7 +281,7 @@ export default function App() {
   const todayStr = new Date().toISOString().split('T')[0];
   const currentWeekNum = getWeekNumber(new Date());
 
-  const soccerLimit = settings.soccerThreshold || 30;
+  const soccerLimit = settings.soccerThreshold || 20; 
   const gameLimit = settings.gameThreshold || 50;
 
   const shopVoice = useSpeechRecognition();
@@ -359,14 +359,23 @@ export default function App() {
     await setDoc(doc(db, ...path, 'profiles', 'p_tata'), { name: 'Tata', age: 99, avatar: '🚒', points: 0, isParent: true });
     await setDoc(doc(db, ...path, 'profiles', 'p_mama'), { name: 'Mama', age: 98, avatar: '🌸', points: 0, isParent: true });
     
-    await setDoc(doc(db, ...path, 'tasks', 'def_teeth'), { title: 'Mycie zębów', icon: '🪥', points: 5, assignedTo: [], type: 'daily' });
-    
+    // ZBALANSOWANE ZADANIA
+    const tRef = collection(db, ...path, 'tasks');
+    await setDoc(doc(tRef, 'task_teeth'), { title: 'Mycie zębów', icon: '🪥', points: 5, assignedTo: [], type: 'daily' });
+    await setDoc(doc(tRef, 'task_bed'), { title: 'Ścielenie łóżka', icon: '🛌', points: 5, assignedTo: [], type: 'daily' });
+    await setDoc(doc(tRef, 'task_clothes'), { title: 'Ubranie się', icon: '👕', points: 5, assignedTo: [], type: 'daily' });
+    await setDoc(doc(tRef, 'task_dishwasher'), { title: 'Rozładowanie zmywarki', icon: '🍽️', points: 15, assignedTo: [], type: 'daily' });
+    await setDoc(doc(tRef, 'task_clean_room'), { title: 'Sprzątanie pokoju', icon: '🧸', points: 20, assignedTo: [], type: 'daily' });
+
+    // Rewards
     const rRef = collection(db, ...path, 'rewards');
     for (const r of defaultRewardsData) { await setDoc(doc(rRef), r); }
     
+    // Config default
+    await setDoc(doc(db, ...path, 'settings', 'config'), { soccerThreshold: 20, gameThreshold: 50 }, {merge: true});
+
     if (!silent) {
         alert("Baza wyczyszczona i naprawiona!");
-        // No reload needed, snapshots will update
     }
   };
 
@@ -457,17 +466,26 @@ export default function App() {
           
           {isPinModalOpen && <PinPad onSuccess={() => { setView('dashboard'); setIsPinModalOpen(false); }} onCancel={() => setIsPinModalOpen(false)} />}
           
-          <h1 className="text-3xl font-black text-slate-800 mb-8 mt-12">Rodzinka Hero</h1>
-          <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-            {profiles.map(p => (
-              <button key={p.id} onClick={() => { setCurrentProfile(p); if(p.isParent) setIsPinModalOpen(true); else { setTab('tasks'); setView('dashboard'); }}} className="relative bg-white p-4 rounded-3xl shadow-lg border-4 transition-transform active:scale-95 flex flex-col items-center border-slate-100">
-                {p.isParent && totalPending > 0 && <div className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold animate-bounce shadow-md z-10">{totalPending}</div>}
-                <div className="text-5xl mb-2">{p.avatar}</div>
-                <span className="text-lg font-bold text-slate-700">{p.name}</span>
-                {!p.isParent && <div className="mt-1 bg-yellow-400 text-white px-3 py-0.5 rounded-full text-xs font-black shadow-sm">{p.points} pkt</div>}
-              </button>
-            ))}
-          </div>
+          {/* PRZYCISK STARTOWY - TYLKO GDY PUSTO */}
+          {profiles.length === 0 ? (
+            <div className="absolute inset-0 bg-white/80 z-50 flex items-center justify-center">
+              <button onClick={() => handleConfirm("To utworzy nową bazę. Kontynuować?", seedDatabase)} className="bg-blue-600 text-white p-8 rounded-full font-black text-3xl shadow-2xl animate-pulse">Wgraj Rodzinę (Start)</button>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-3xl font-black text-slate-800 mb-8 mt-12">Rodzinka Hero</h1>
+              <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                {profiles.map(p => (
+                  <button key={p.id} onClick={() => { setCurrentProfile(p); if(p.isParent) setIsPinModalOpen(true); else { setTab('tasks'); setView('dashboard'); }}} className="relative bg-white p-4 rounded-3xl shadow-lg border-4 transition-transform active:scale-95 flex flex-col items-center border-slate-100">
+                    {p.isParent && totalPending > 0 && <div className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold animate-bounce shadow-md z-10">{totalPending}</div>}
+                    <div className="text-5xl mb-2">{p.avatar}</div>
+                    <span className="text-lg font-bold text-slate-700">{p.name}</span>
+                    {!p.isParent && <div className="mt-1 bg-yellow-400 text-white px-3 py-0.5 rounded-full text-xs font-black shadow-sm">{p.points} pkt</div>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
